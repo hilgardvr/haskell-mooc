@@ -13,7 +13,10 @@ data Country = Finland | Switzerland | Norway
   deriving Show
 
 instance Eq Country where
-  (==) = todo
+  (==) Finland Finland = True
+  (==) Switzerland Switzerland = True
+  (==) Norway Norway = True
+  (==) _ _ = False
 
 ------------------------------------------------------------------------------
 -- Ex 2: implement an Ord instance for Country so that
@@ -22,10 +25,16 @@ instance Eq Country where
 -- Remember minimal complete definitions!
 
 instance Ord Country where
-  compare = todo -- implement me?
-  (<=) = todo -- and me?
-  min = todo -- and me?
-  max = todo -- and me?
+--  (<=) = todo -- and me?
+--  min = todo -- and me?
+--  max = todo -- and me?
+    compare Finland Norway = LT
+    compare Finland Switzerland = LT
+    compare Norway Switzerland = LT
+    compare Norway Finland = GT
+    compare Switzerland Finland = GT
+    compare Switzerland Norway = GT
+    compare _ _ = EQ
 
 ------------------------------------------------------------------------------
 -- Ex 3: Implement an Eq instance for the type Name which contains a String.
@@ -41,7 +50,8 @@ data Name = Name String
   deriving Show
 
 instance Eq Name where
-  (==) = todo
+  (==) (Name x) (Name y) = mapLowerChar x == mapLowerChar y
+    where mapLowerChar xs = map Data.Char.toLower xs
 
 ------------------------------------------------------------------------------
 -- Ex 4: here is a list type parameterized over the type it contains.
@@ -55,7 +65,12 @@ data List a = Empty | LNode a (List a)
   deriving Show
 
 instance Eq a => Eq (List a) where
-  (==) = todo
+  (==) Empty Empty = True
+  (==) (LNode x xs) (LNode y ys) = 
+    if x == y
+    then (==) xs ys
+    else False
+  (==) _ _ = False
 
 ------------------------------------------------------------------------------
 -- Ex 5: below you'll find two datatypes, Egg and Milk. Implement a
@@ -74,6 +89,16 @@ data Egg = ChickenEgg | ChocolateEgg
   deriving Show
 data Milk = Milk Int -- amount in litres
   deriving Show
+
+class Price a where 
+    price :: a -> Int
+
+instance Price Egg where
+    price ChickenEgg = 20
+    price ChocolateEgg = 30
+
+instance Price Milk where
+    price (Milk l) = l * 15
 
 
 ------------------------------------------------------------------------------
