@@ -110,6 +110,12 @@ instance Price Milk where
 -- price [Just ChocolateEgg, Nothing, Just ChickenEgg]  ==> 50
 -- price [Nothing, Nothing, Just (Milk 1), Just (Milk 2)]  ==> 45
 
+instance Price a => Price [a] where
+    price xs = foldr (\c acc -> price c + acc) 0 xs
+instance Price a => Price (Maybe a) where
+    price Nothing = 0
+    price (Just a) = price a
+
 
 ------------------------------------------------------------------------------
 -- Ex 7: below you'll find the datatype Number, which is either an
@@ -120,6 +126,12 @@ instance Price Milk where
 
 data Number = Finite Integer | Infinite
   deriving (Show,Eq)
+
+instance Ord Number where
+    (<=) (Finite x) (Finite y) = x <= y
+    (<=) (Finite _) Infinite = True
+    (<=) Infinite (Finite _) = False
+    (<=) Infinite Infinite = True
 
 
 ------------------------------------------------------------------------------
@@ -146,7 +158,7 @@ data RationalNumber = RationalNumber Integer Integer
   deriving Show
 
 instance Eq RationalNumber where
-  p == q = todo
+  (RationalNumber a b) == (RationalNumber c d) = a*d == b*c
 
 ------------------------------------------------------------------------------
 -- Ex 9: implement the function simplify, which simplifies a rational
@@ -166,7 +178,16 @@ instance Eq RationalNumber where
 -- Hint: Remember the function gcd?
 
 simplify :: RationalNumber -> RationalNumber
-simplify p = todo
+simplify (RationalNumber x y) = 
+    let
+        gcd x' y' = case compare x' y' of
+            EQ -> x'
+            GT -> gcd (x' - y') y'
+            LT -> gcd x' (y' - x')
+    in
+        if x == 0
+        then RationalNumber 0 1
+        else RationalNumber (x `div` gcd (abs x) (abs y)) (y `div` gcd (abs x) (abs y))
 
 ------------------------------------------------------------------------------
 -- Ex 10: implement the typeclass Num for RationalNumber. The results
@@ -187,12 +208,25 @@ simplify p = todo
 --   signum (RationalNumber 0 2)             ==> RationalNumber 0 1
 
 instance Num RationalNumber where
-  p + q = todo
-  p * q = todo
-  abs q = todo
-  signum q = todo
-  fromInteger x = todo
-  negate q = todo
+  (RationalNumber x1 x2) + (RationalNumber y1 y2) = 
+    let
+        x1' = x1 * y2
+        y1' = y1 * x2
+        den = x2 * y2
+    in
+        simplify $ RationalNumber (x1' + y1') den
+
+  (RationalNumber x1 x2) * (RationalNumber y1 y2) =
+    let
+        num = x1 * y1
+        den = x2 * y2
+    in
+        simplify $ RationalNumber num den
+
+  abs (RationalNumber x y) = RationalNumber (abs x) (abs y)
+  signum (RationalNumber x y) = RationalNumber (signum x) 1
+  fromInteger x = RationalNumber x 1
+  negate (RationalNumber x y) = RationalNumber (negate x) y
 
 ------------------------------------------------------------------------------
 -- Ex 11: a class for adding things. Define a class Addable with a
@@ -207,6 +241,17 @@ instance Num RationalNumber where
 --   add [1,2] [3,4]        ==>  [1,2,3,4]
 --   add zero [True,False]  ==>  [True,False]
 
+class Addable a where
+    zero :: a
+    add :: a -> a -> a
+
+instance Addable [a] where
+    zero = []
+    add xs ys = xs ++ ys
+
+instance Addable Integer where
+    zero = 0
+    add x y = x + y
 
 ------------------------------------------------------------------------------
 -- Ex 12: cycling. Implement a type class Cycle that contains a
@@ -232,6 +277,23 @@ instance Num RationalNumber where
 --
 --    instance Cycle Int where
 --      step = succ
+class Cycle a where
+    step :: a -> a
+    stepMany :: Int -> a -> a
+    stepMany i a 
+        | i <= 0 = a
+        | otherwise = stepMany (i - 1) (step a)
+
+instance Cycle Color where
+    step Red = Green
+    step Green = Blue
+    step Blue = Red
+
+instance Cycle Suit where
+    step Club = Spade
+    step Spade = Diamond
+    step Diamond = Heart
+    step Heart = Club
 
 data Color = Red | Green | Blue
   deriving (Show, Eq)
