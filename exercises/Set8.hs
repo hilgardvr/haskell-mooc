@@ -233,7 +233,8 @@ exampleCircle = fill red (circle 80 100 200)
 --        ["000000","000000","000000","000000","000000","000000"]]
 
 rectangle :: Int -> Int -> Int -> Int -> Shape
-rectangle x0 y0 w h = todo
+rectangle x0 y0 w h = Shape f
+    where f (Coord x y) = x >= x0 && x < (x0 + w) && y >= y0 && y < (y0 + h)
 ------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------
@@ -249,10 +250,10 @@ rectangle x0 y0 w h = todo
 -- shape.
 
 union :: Shape -> Shape -> Shape
-union = todo
+union s1 s2 = Shape (\(Coord x y) -> contains s1 x y || contains s2 x y)
 
 cut :: Shape -> Shape -> Shape
-cut = todo
+cut s1 s2 = Shape (\(Coord x y) -> if contains s2 x y then False else contains s1 x y)
 ------------------------------------------------------------------------------
 
 -- Here's a snowman, built using union from circles and rectangles.
@@ -280,7 +281,12 @@ exampleSnowman = fill white snowman
 --        ["000000","000000","000000"]]
 
 paintSolid :: Color -> Shape -> Picture -> Picture
-paintSolid color shape base = todo
+paintSolid color shape (Picture pf) = Picture nf
+    where nf (Coord x y) = 
+            if contains shape x y
+            then color
+            else pf (Coord x y)
+
 ------------------------------------------------------------------------------
 
 allWhite :: Picture
@@ -325,7 +331,12 @@ stripes a b = Picture f
 --       ["000000","000000","000000","000000","000000"]]
 
 paint :: Picture -> Shape -> Picture -> Picture
-paint pat shape base = todo
+paint (Picture pat) shape (Picture base) = Picture nf
+    where nf (Coord x y) =
+            if contains shape x y
+            then pat (Coord x y)
+            else base (Coord x y)
+        
 ------------------------------------------------------------------------------
 
 -- Here's a patterned version of the snowman example. See it by running:
@@ -388,19 +399,21 @@ xy = Picture f
 data Fill = Fill Color
 
 instance Transform Fill where
-  apply = todo
+  apply (Fill c) p = Picture (const c)
 
 data Zoom = Zoom Int
   deriving Show
 
 instance Transform Zoom where
-  apply = todo
+  apply (Zoom z) (Picture p) = Picture (p . zoomCoord z)
 
 data Flip = FlipX | FlipY | FlipXY
   deriving Show
 
 instance Transform Flip where
-  apply = todo
+  apply FlipX (Picture p) = Picture (\(Coord x y) -> p (Coord (-x) y))
+  apply FlipY (Picture p) = Picture (\(Coord x y) -> p (Coord x (-y)))
+  apply FlipXY (Picture p) = Picture (p . flipCoordXY)
 ------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------
@@ -415,8 +428,8 @@ instance Transform Flip where
 data Chain a b = Chain a b
   deriving Show
 
-instance Transform (Chain a b) where
-  apply = todo
+instance (Transform a, Transform b) => Transform (Chain a b) where
+  apply (Chain a b) p = apply a $ apply b p
 ------------------------------------------------------------------------------
 
 -- Now we can redefine largeVerticalStripes using the above Transforms.
