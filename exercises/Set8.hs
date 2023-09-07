@@ -467,7 +467,30 @@ data Blur = Blur
   deriving Show
 
 instance Transform Blur where
-  apply = todo
+  apply Blur (Picture p) = 
+    let
+        f' (Coord x y) = 
+            let
+                c = p (Coord x y)
+                cx = p (Coord (x - 1) y)
+                cx' = p (Coord (x + 1) y)
+                cy = p (Coord x (y - 1))
+                cy' = p (Coord x (y + 1))
+            in
+            combineColors [c, cx, cx', cy, cy']
+    in Picture f'
+    
+combineColors :: [Color] -> Color
+combineColors xs = let
+    total :: Color
+    total = foldr (\(Color r g b) (Color ar ag ab) -> Color (r + ar) (g + ag) (b + ab)) (Color 0 0 0) xs
+
+    divBy :: Color -> Int -> Color
+    divBy (Color r g b) i = Color (div r i) (div g i) (div b i)
+    in 
+        divBy total (length xs)
+        
+
 ------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------
@@ -485,7 +508,9 @@ data BlurMany = BlurMany Int
   deriving Show
 
 instance Transform BlurMany where
-  apply = todo
+  apply (BlurMany i) p 
+    | i <= 0 = p
+    | otherwise = apply (BlurMany (i - 1)) (apply Blur p)
 ------------------------------------------------------------------------------
 
 -- Here's a blurred version of our original snowman. See it by running
