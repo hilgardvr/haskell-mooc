@@ -15,7 +15,6 @@ import Data.List
 import Data.Ord
 
 import Mooc.Todo
-import Set7 (bake)
 
 ------------------------------------------------------------------------------
 -- Ex 1: Implement a function workload that takes in the number of
