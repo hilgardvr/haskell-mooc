@@ -243,7 +243,20 @@ danger c (x:xs) =
 -- solution to this version. Any working solution is okay in this exercise.)
 
 prettyPrint2 :: Size -> Stack -> String
-prettyPrint2 = todo
+prettyPrint2 s xs = 
+    let
+        helper :: Size -> [Coord] -> Coord -> String
+        helper s xs (cr, cc)
+            | cc > s = '\n' : helper s xs (nextRow (cr, cc))
+            | cr > s = ""
+            | otherwise = 
+                if elem (cr, cc) xs
+                then 'Q' : helper s xs (nextCol (cr, cc))
+                else if danger (cr, cc) xs
+                    then '#' : helper s xs (nextCol (cr, cc))
+                    else '.' : helper s xs (nextCol (cr, cc))
+    in
+        helper s xs (1,1)
 
 --------------------------------------------------------------------------------
 -- Ex 6: Now that we can check if a piece can be safely placed into a square in
@@ -288,7 +301,14 @@ prettyPrint2 = todo
 --     Q#######
 
 fixFirst :: Size -> Stack -> Maybe Stack
-fixFirst n s = todo
+fixFirst n [] = Just []
+fixFirst n ((r,c):xs) = 
+    if c > n
+    then Nothing
+    else 
+        if danger (r,c) xs
+        then fixFirst n (nextCol (r,c):xs)
+        else Just ((r,c):xs)
 
 --------------------------------------------------------------------------------
 -- Ex 7: We need two helper functions for stack management.
@@ -310,10 +330,16 @@ fixFirst n s = todo
 -- Hint: Remember nextRow and nextCol? Use them!
 
 continue :: Stack -> Stack
-continue s = todo
+continue [] = []
+continue (x:xs) = nextRow x:x:xs
 
 backtrack :: Stack -> Stack
-backtrack s = todo
+backtrack [] = []
+backtrack (x:xs) = f xs
+    where 
+        f :: Stack -> Stack
+        f [] = []
+        f (x':xs') = nextCol x' : xs'
 
 --------------------------------------------------------------------------------
 -- Ex 8: Let's take a step. Our algorithm solves the problem (in a
@@ -382,7 +408,10 @@ backtrack s = todo
 --     step 8 [(6,1),(5,4),(4,2),(3,5),(2,3),(1,1)] ==> [(5,5),(4,2),(3,5),(2,3),(1,1)]
 
 step :: Size -> Stack -> Stack
-step = todo
+step s stack = 
+    case fixFirst s stack of
+        Nothing -> backtrack stack
+        Just s -> continue s
 
 --------------------------------------------------------------------------------
 -- Ex 9: Let's solve our puzzle! The function finish takes a partial
@@ -397,7 +426,10 @@ step = todo
 -- solve the n queens problem.
 
 finish :: Size -> Stack -> Stack
-finish = todo
+finish size [] = []
+finish size stack
+    | length stack > size = tail stack
+    | otherwise = finish size (step size stack)
 
 solve :: Size -> Stack
 solve n = finish n [(1,1)]
