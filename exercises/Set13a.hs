@@ -289,9 +289,9 @@ count x = get >>=
         let 
             contains = foldr (\(k,v) acc -> k == x || acc) False s 
         in
-        if contains
-        then put (fmap (\(k,v) -> if k == x then (k,v+1) else (k,v)) s)
-        else put ((x,1):s)
+            if contains
+            then put (fmap (\(k,v) -> if k == x then (k,v+1) else (k,v)) s)
+            else put ((x,1):s)
 
 ------------------------------------------------------------------------------
 -- Ex 10: Implement the operation occurrences, which
@@ -313,4 +313,6 @@ count x = get >>=
 --    ==> (4,[(2,1),(3,1),(4,1),(7,1)])
 
 occurrences :: (Eq a) => [a] -> State [(a,Int)] Int
-occurrences xs = todo
+occurrences xs = do
+    mapM count xs
+    get >>= return . length
