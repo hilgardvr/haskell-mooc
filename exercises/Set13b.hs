@@ -42,7 +42,11 @@ test = do
   return (x<10)
 
 ifM :: Monad m => m Bool -> m a -> m a -> m a
-ifM opBool opThen opElse = todo
+ifM opBool opThen opElse = do
+    op <- opBool
+    if op
+    then opThen
+    else opElse
 
 ------------------------------------------------------------------------------
 -- Ex 2: the standard library function Control.Monad.mapM defines a
@@ -84,7 +88,13 @@ perhapsIncrement True x = modify (+x)
 perhapsIncrement False _ = return ()
 
 mapM2 :: Monad m => (a -> b -> m c) -> [a] -> [b] -> m [c]
-mapM2 op xs ys = todo
+mapM2 op xs ys = 
+    let
+        mapM2' :: (a -> b -> m c) -> [a] -> [b] -> [m c]
+        mapM2' op (x:xs) (y:ys) = (op x y : mapM2' op xs ys)
+        mapM2' op _ _ = []
+    in
+        mapM id (mapM2' op xs ys)
 
 ------------------------------------------------------------------------------
 -- Ex 3: Finding paths.
@@ -142,14 +152,35 @@ maze1 = [("Entry",["Pit","Corridor 1"])
 
 
 visit :: [(String,[String])] -> String -> State [String] ()
-visit maze place = todo
+visit maze place =
+    let 
+        available :: [String]
+        available = case lookup place maze of
+            Nothing -> []
+            Just places -> places
+
+        notVisited :: [String] -> [String]
+        notVisited visited = filter (\e -> not $ elem e visited) available
+    in 
+        do
+            visited <- get
+            if elem place visited 
+            then return ()
+            else do
+                put (place:visited)
+                mapM_ (\e -> visit maze e) (notVisited (place:visited))
 
 -- Now you should be able to implement path using visit. If you run
 -- visit on a place using an empty state, you'll get a state that
 -- lists all the places that are reachable from the starting place.
 
 path :: [(String,[String])] -> String -> String -> Bool
-path maze place1 place2 = todo
+path maze place1 place2 =
+    let 
+        a = runState (visit maze place1) []
+    in
+        elem place2 (snd a)
+
 
 ------------------------------------------------------------------------------
 -- Ex 4: Given two lists, ks and ns, find numbers i and j from ks,
