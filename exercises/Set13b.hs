@@ -196,8 +196,20 @@ path maze place1 place2 =
 -- PS. The tests don't care about the order of results.
 
 findSum2 :: [Int] -> [Int] -> [(Int,Int,Int)]
-findSum2 ks ns = todo
+findSum2 ks ns = do
+    a <- ks
+    b <- ks
+    if elem (a+b) ns
+    then [(a,b,a+b)]
+    else []
 
+
+unique :: (Eq a) => [a] -> [a] -> [a]
+unique acc [] = acc
+unique acc (x:xs) =
+    if elem x acc
+    then unique acc xs 
+    else unique (x:acc) xs 
 ------------------------------------------------------------------------------
 -- Ex 5: compute all possible sums of elements from the given
 -- list. Use the list monad.
@@ -215,9 +227,23 @@ findSum2 ks ns = todo
 --     ==> [1,0]
 --   allSums [1,2,4]
 --     ==> [7,3,5,1,6,2,4,0]
+--
+--
 
 allSums :: [Int] -> [Int]
-allSums xs = todo
+allSums xs = 
+    let
+        --subs :: [Int] -> [[Int]]
+        --subs [] = [[0]]
+        --subs (x:xs) = subs xs ++ map (x:) (subs xs)
+        subs :: [Int] -> [[Int]]
+        subs [] = [[0]]
+        subs (x:xs) = do
+            s <- subs xs
+            s : [x:s]
+    in do
+        x <- subs xs 
+        return (sum x)
 
 ------------------------------------------------------------------------------
 -- Ex 6: the standard library defines the function
@@ -247,7 +273,10 @@ sumBounded :: Int -> [Int] -> Maybe Int
 sumBounded k xs = foldM (f1 k) 0 xs
 
 f1 :: Int -> Int -> Int -> Maybe Int
-f1 k acc x = todo
+f1 k acc x = 
+    if acc + x > k
+    then Nothing
+    else Just (acc + x)
 
 -- sumNotTwice computes the sum of a list, but counts only the first
 -- occurrence of each value.
@@ -261,7 +290,13 @@ sumNotTwice :: [Int] -> Int
 sumNotTwice xs = fst $ runState (foldM f2 0 xs) []
 
 f2 :: Int -> Int -> State [Int] Int
-f2 acc x = todo
+f2 acc x = do
+    s <- get
+    if elem x s
+    then return acc
+    else do
+        put (x:s)
+        return (acc+x)
 
 ------------------------------------------------------------------------------
 -- Ex 7: here is the Result type from Set12. Implement a Monad Result
