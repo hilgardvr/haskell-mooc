@@ -73,12 +73,16 @@ getAllQuery = Query (T.pack "SELECT account, amount FROM events;")
 -- openDatabase should open an SQLite database using the given
 -- filename, run initQuery on it, and produce a database Connection.
 openDatabase :: String -> IO Connection
-openDatabase = todo
+openDatabase dbName = do
+    db <- open dbName
+    execute_ db initQuery
+    return db
 
 -- given a db connection, an account name, and an amount, deposit
 -- should add an (account, amount) row into the database
 deposit :: Connection -> T.Text -> Int -> IO ()
-deposit = todo
+deposit db account amount = do
+    execute db depositQuery (account, amount)
 
 ------------------------------------------------------------------------------
 -- Ex 2: Fetching an account's balance. Below you'll find
@@ -109,7 +113,9 @@ balanceQuery :: Query
 balanceQuery = Query (T.pack "SELECT amount FROM events WHERE account = ?;")
 
 balance :: Connection -> T.Text -> IO Int
-balance = todo
+balance db account = do
+    deps <- query db balanceQuery [account] :: IO [[Int]]
+    return $ foldr (\e a -> sum e + a) 0 deps
 
 ------------------------------------------------------------------------------
 -- Ex 3: Now that we have the database part covered, let's think about
@@ -148,7 +154,14 @@ parseInt :: T.Text -> Maybe Int
 parseInt = readMaybe . T.unpack
 
 parseCommand :: [T.Text] -> Maybe Command
-parseCommand = todo
+parseCommand (c:a:t:[])
+    | c == T.pack "deposit" = case (parseInt t) of
+        Just i -> Just $ Deposit a i
+    | otherwise = Nothing
+parseCommand (c:a:[]) 
+    | c == T.pack "balance" = Just $ Balance a
+parseCommand _ = Nothing
+
 
 ------------------------------------------------------------------------------
 -- Ex 4: Running commands. Implement the IO operation perform that takes a
@@ -174,7 +187,14 @@ parseCommand = todo
 --   "0"
 
 perform :: Connection -> Maybe Command -> IO T.Text
-perform = todo
+perform _ Nothing = return $ T.pack "Invalid"
+perform db (Just c) = case c of 
+    Deposit acc amount -> do
+        deposit db acc amount
+        return $ T.pack "OK"
+    Balance acc -> do
+        b <- balance db acc
+        return $ T.pack (show b)
 
 ------------------------------------------------------------------------------
 -- Ex 5: Next up, let's set up a simple HTTP server. Implement a WAI
