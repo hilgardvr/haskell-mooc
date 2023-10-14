@@ -147,7 +147,7 @@ balance db account = do
 --   parseCommand [T.pack "deposit", T.pack "madoff", T.pack "123456"]
 --     ==> Just (Deposit "madoff" 123456)
 
-data Command = Deposit T.Text Int | Balance T.Text
+data Command = Deposit T.Text Int | Balance T.Text | Withdraw T.Text Int
   deriving (Show, Eq)
 
 parseInt :: T.Text -> Maybe Int
@@ -155,9 +155,8 @@ parseInt = readMaybe . T.unpack
 
 parseCommand :: [T.Text] -> Maybe Command
 parseCommand (c:a:t:[])
-    | c == T.pack "deposit" = case (parseInt t) of
-        Just i -> Just $ Deposit a i
-    | otherwise = Nothing
+    | c == T.pack "deposit" = parseInt t >>= (\i -> Just $ Deposit a i)
+    | c == T.pack "withdraw" = parseInt t >>= (\i -> Just $ Withdraw a i)
 parseCommand (c:a:[]) 
     | c == T.pack "balance" = Just $ Balance a
 parseCommand _ = Nothing
@@ -187,7 +186,7 @@ parseCommand _ = Nothing
 --   "0"
 
 perform :: Connection -> Maybe Command -> IO T.Text
-perform _ Nothing = return $ T.pack "Invalid"
+perform _ Nothing = return $ T.pack "ERROR"
 perform db (Just c) = case c of 
     Deposit acc amount -> do
         deposit db acc amount
@@ -195,6 +194,10 @@ perform db (Just c) = case c of
     Balance acc -> do
         b <- balance db acc
         return $ T.pack (show b)
+    Withdraw acc amount -> do
+        deposit db acc (negate amount)
+        return $ T.pack "OK"
+        
 
 ------------------------------------------------------------------------------
 -- Ex 5: Next up, let's set up a simple HTTP server. Implement a WAI
@@ -214,7 +217,7 @@ encodeResponse t = LB.fromStrict (encodeUtf8 t)
 -- Remember:
 -- type Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
 simpleServer :: Application
-simpleServer request respond = todo
+simpleServer request respond = respond $ responseLBS status200 [] (LB.fromStrict $ encodeUtf8 $ T.pack "BANK")
 
 ------------------------------------------------------------------------------
 -- Ex 6: Now we finally have all the pieces we need to actually
@@ -243,7 +246,14 @@ simpleServer request respond = todo
 -- Remember:
 -- type Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
 server :: Connection -> Application
-server db request respond = todo
+server db request respond =
+    let 
+        path = pathInfo request
+        command = parseCommand path
+    in do
+        result <- perform db command
+        respond $ responseLBS status200 [] (LB.fromStrict $ encodeUtf8 $ result)
+    
 
 port :: Int
 port = 3421
