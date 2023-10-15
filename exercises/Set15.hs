@@ -17,7 +17,7 @@ import Text.Read (readMaybe)
 --  sumTwoMaybes Nothing Nothing    ==> Nothing
 
 sumTwoMaybes :: Maybe Int -> Maybe Int -> Maybe Int
-sumTwoMaybes = todo
+sumTwoMaybes i1 i2 = liftA2 (+) i1 i2
 
 ------------------------------------------------------------------------------
 -- Ex 2: Given two lists of words, xs and ys, generate all statements
@@ -36,7 +36,9 @@ sumTwoMaybes = todo
 --         "code is not suffering","code is not life"]
 
 statements :: [String] -> [String] -> [String]
-statements = todo
+statements xs ys = liftA2 combineIs xs ys ++ liftA2 combineIsNot xs ys
+    where combineIs x y = x ++ " is " ++ y
+          combineIsNot x y = x ++ " is not " ++ y
 
 ------------------------------------------------------------------------------
 -- Ex 3: A simple calculator with error handling. Given an operation
@@ -54,7 +56,15 @@ statements = todo
 --  calculator "double" "7x"  ==> Nothing
 
 calculator :: String -> String -> Maybe Int
-calculator = todo
+calculator op val = 
+    let 
+        calc :: String -> Maybe (Int -> Int)
+        calc s
+            | s == "negate" = Just negate
+            | s == "double" = Just (*2)
+            | otherwise = Nothing
+    in
+        calc op <*> readMaybe val
 
 ------------------------------------------------------------------------------
 -- Ex 4: Safe division. Implement the function validateDiv that
@@ -71,7 +81,10 @@ calculator = todo
 --  validateDiv 0 3 ==> Ok 0
 
 validateDiv :: Int -> Int -> Validation Int
-validateDiv = todo
+validateDiv n d = div <$> pure n <*> checkedDen
+    where 
+        checkedDen :: Validation Int
+        checkedDen = check (d /= 0) "Division by zero!" d
 
 ------------------------------------------------------------------------------
 -- Ex 5: Validating street addresses. A street address consists of a
