@@ -168,7 +168,20 @@ twoPersons name1 age1 employed1 name2 age2 employed2 = liftA2 (\x y -> [x,y]) (p
 --  boolOrInt "Falseb"  ==> Errors ["Not a Bool","Not an Int"]
 
 boolOrInt :: String -> Validation (Either Bool Int)
-boolOrInt = todo
+boolOrInt s = 
+    let
+        maybeBool :: String -> Validation Bool
+        maybeBool s' = case readMaybe s' :: Maybe Bool of
+            Just b -> pure b
+            Nothing -> invalid "Not a Bool"
+
+        maybeInt :: String -> Validation Int
+        maybeInt s' = case readMaybe s' :: Maybe Int of
+            Just i -> pure i
+            Nothing -> invalid "Not an Int"
+
+    in (Left <$> maybeBool s) <|> (Right <$> maybeInt s)
+        
 
 ------------------------------------------------------------------------------
 -- Ex 8: Improved phone number validation. Implement the function
