@@ -114,7 +114,16 @@ data Address = Address String String String
   deriving (Show,Eq)
 
 validateAddress :: String -> String -> String -> Validation Address
-validateAddress streetName streetNumber postCode = todo
+validateAddress streetName streetNumber postCode = 
+    let 
+        checkedName = check (length streetName <= 20) "Invalid street name" streetName
+        checkedNumber :: String -> String -> Validation String
+        checkedNumber s err = case readMaybe s :: Maybe Int of
+            Just _ -> pure s
+            Nothing -> invalid err
+        checkedPost = check (length postCode == 5) "Invalid postcode" postCode
+    in
+        Address <$> checkedName <*> checkedNumber streetNumber "Invalid street number" <*> (checkedNumber postCode "Invalid postcode" *> checkedPost)
 
 ------------------------------------------------------------------------------
 -- Ex 6: Given the names, ages and employment statuses of two
@@ -134,9 +143,12 @@ data Person = Person String Int Bool
   deriving (Show, Eq)
 
 twoPersons :: Applicative f =>
-  f String -> f Int -> f Bool -> f String -> f Int -> f Bool
-  -> f [Person]
-twoPersons name1 age1 employed1 name2 age2 employed2 = todo
+  f String -> f Int -> f Bool -> f String -> f Int -> f Bool -> f [Person]
+twoPersons name1 age1 employed1 name2 age2 employed2 = liftA2 (\x y -> [x,y]) (person name1 age1 employed1) (person name2 age2 employed2)
+    where
+        person :: Applicative f => f String -> f Int -> f Bool -> f Person
+        person name1 age1 employed1 = Person <$> name1 <*> age1 <*> employed1
+
 
 ------------------------------------------------------------------------------
 -- Ex 7: Validate a String that's either a Bool or an Int. The return
