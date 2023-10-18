@@ -116,11 +116,16 @@ data Address = Address String String String
 validateAddress :: String -> String -> String -> Validation Address
 validateAddress streetName streetNumber postCode = 
     let 
+        checkedName :: Validation String
         checkedName = check (length streetName <= 20) "Invalid street name" streetName
+
         checkedNumber :: String -> String -> Validation String
-        checkedNumber s err = case readMaybe s :: Maybe Int of
-            Just _ -> pure s
-            Nothing -> invalid err
+        checkedNumber s err = 
+            if foldr (\e a -> a && isDigit e) True s 
+            then pure s
+            else invalid err
+
+        checkedPost :: Validation String
         checkedPost = check (length postCode == 5) "Invalid postcode" postCode
     in
         Address <$> checkedName <*> checkedNumber streetNumber "Invalid street number" <*> (checkedNumber postCode "Invalid postcode" *> checkedPost)
@@ -144,10 +149,11 @@ data Person = Person String Int Bool
 
 twoPersons :: Applicative f =>
   f String -> f Int -> f Bool -> f String -> f Int -> f Bool -> f [Person]
-twoPersons name1 age1 employed1 name2 age2 employed2 = liftA2 (\x y -> [x,y]) (person name1 age1 employed1) (person name2 age2 employed2)
+twoPersons name1 age1 employed1 name2 age2 employed2 = 
+    liftA2 (\x y -> [x,y]) (person name1 age1 employed1) (person name2 age2 employed2)
     where
         person :: Applicative f => f String -> f Int -> f Bool -> f Person
-        person name1 age1 employed1 = Person <$> name1 <*> age1 <*> employed1
+        person name age employed = Person <$> name <*> age <*> employed
 
 
 ------------------------------------------------------------------------------
@@ -205,7 +211,25 @@ boolOrInt s =
 --    ==> Errors ["Too long"]
 
 normalizePhone :: String -> Validation String
-normalizePhone = todo
+normalizePhone str = 
+    let
+        stripSpaces :: String -> String
+        stripSpaces [] = []
+        stripSpaces (x:xs) = 
+            if isSpace x
+            then stripSpaces xs
+            else x : stripSpaces xs
+
+        stripedNumber :: String
+        stripedNumber = stripSpaces str
+
+        checkLength :: String -> Validation String
+        checkLength s = check (length s <= 10) "Too long" s
+
+        checkChars :: String -> Validation String
+        checkChars s = traverse (\e -> check (isNumber e) ("Invalid character: " ++ [e]) e) s
+    in 
+        checkLength stripedNumber *> checkChars stripedNumber
 
 ------------------------------------------------------------------------------
 -- Ex 9: Parsing expressions. The Expression type describes an
@@ -249,7 +273,36 @@ data Expression = Plus Arg Arg | Minus Arg Arg
   deriving (Show, Eq)
 
 parseExpression :: String -> Validation Expression
-parseExpression = todo
+parseExpression str = 
+    let
+        validateInt :: String -> Validation Arg 
+        validateInt s = case readMaybe s :: Maybe Int of
+            Just i -> check True "" (Number i)
+            Nothing -> invalid $ "Invalid number: " ++ s
+
+        validateChar :: String -> Validation Arg
+        validateChar s = check (length s == 1 && isAlpha (head s)) ("Invalid variable: " ++ s) (Variable (head s))
+
+        alternativeArg :: String -> Validation Arg
+        alternativeArg s = validateInt s <|> validateChar s
+
+        validateOp :: [String] -> Validation Expression
+        validateOp s =
+            let 
+                arg1 = alternativeArg (s!!0)
+                arg2 = alternativeArg (s!!2)
+
+                validate s
+                    | length s /= 3 = invalid ("Invalid expression: " ++ str)
+                    | s!!1 == "+" = Plus <$> arg1 <*>  arg2
+                    | s!!1 == "-" = Minus <$> arg1 <*> arg2
+                    | otherwise = invalid ("Unknown operator: " ++ s!!1) <*> arg1 <*> arg2
+            in
+                validate s
+
+    in
+        validateOp (words str)
+        
 
 ------------------------------------------------------------------------------
 -- Ex 10: The Priced T type tracks a value of type T, and a price
