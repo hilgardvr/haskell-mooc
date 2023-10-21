@@ -434,7 +434,7 @@ newtype Both f g a = Both (f (g a))
   deriving Show
 
 instance (Functor f, Functor g) => Functor (Both f g) where
-  fmap = todo
+  fmap f' (Both a) = Both (fmap f' <$> a)
 
 ------------------------------------------------------------------------------
 -- Ex 15: The composition of two Applicatives is also an Applicative!
@@ -462,5 +462,5 @@ instance (Functor f, Functor g) => Functor (Both f g) where
 --              Errors ["fail 1","fail 2"]]
 
 instance (Applicative f, Applicative g) => Applicative (Both f g) where
-  pure = todo
-  liftA2 = todo
+  pure a = Both (pure (pure a)) 
+  liftA2 f (Both a) (Both b) = Both (liftA2 f <$> a <*> b)
