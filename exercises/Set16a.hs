@@ -18,7 +18,7 @@ import Data.List
 --  +++ OK, passed 1 test.
 
 isSorted :: (Show a, Ord a) => [a] -> Property
-isSorted = todo
+isSorted xs = sort xs === xs
 
 ------------------------------------------------------------------------------
 -- Ex 2: In this and the following exercises, we'll build a suite of
@@ -50,7 +50,7 @@ isSorted = todo
 --  +++ OK, passed 1 test.
 
 sumIsLength :: Show a => [a] -> [(a,Int)] -> Property
-sumIsLength input output = todo
+sumIsLength input output = length input === foldr (\e a -> snd e + a) 0 output
 
 -- This is a function that passes the sumIsLength test but is wrong
 freq1 :: Eq a => [a] -> [(a,Int)]
@@ -79,7 +79,11 @@ freq1 (x:y:xs) = [(x,1),(y,length xs + 1)]
 --  +++ OK, passed 100 tests.
 
 inputInOutput :: (Show a, Eq a) => [a] -> [(a,Int)] -> Property
-inputInOutput input output = todo
+inputInOutput input output = 
+    let
+        o = map fst output
+    in
+        forAll (elements input) (\e -> elem e o)
 
 -- This function passes both the sumIsLength and inputInOutput tests
 freq2 :: Eq a => [a] -> [(a,Int)]
@@ -109,8 +113,12 @@ freq2 xs = map (\x -> (x,1)) xs
 --  *Set16a> quickCheck (outputInInput [4,5,6,4,5,4] (freq3 [4,5,6,4,5,4]))
 --  +++ OK, passed 100 tests.
 
+--helper input (k,c) = length (filter (\e -> k == e) input) == c
+
 outputInInput :: (Show a, Eq a) => [a] -> [(a,Int)] -> Property
-outputInInput input output = todo
+outputInInput input output = forAll (elements output) (helper )
+    where
+        helper (k,c) = length (filter (\e -> k == e) input) == c
 
 -- This function passes the outputInInput test but not the others
 freq3 :: Eq a => [a] -> [(a,Int)]
@@ -139,7 +147,10 @@ freq3 (x:xs) = [(x,1 + length (filter (==x) xs))]
 --  +++ OK, passed 100 tests.
 
 frequenciesProp :: ([Char] -> [(Char,Int)]) -> NonEmptyList Char -> Property
-frequenciesProp freq input = todo
+frequenciesProp freq (NonEmpty input) = do
+    --sumIsLength input (freq input) >>
+    --inputInOutput input (freq input)
+    outputInInput input (freq input)
 
 frequencies :: Eq a => [a] -> [(a,Int)]
 frequencies [] = []
