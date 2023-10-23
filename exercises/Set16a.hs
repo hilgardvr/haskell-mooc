@@ -147,9 +147,9 @@ freq3 (x:xs) = [(x,1 + length (filter (==x) xs))]
 --  +++ OK, passed 100 tests.
 
 frequenciesProp :: ([Char] -> [(Char,Int)]) -> NonEmptyList Char -> Property
-frequenciesProp freq (NonEmpty input) = do
-    --sumIsLength input (freq input) >>
-    --inputInOutput input (freq input)
+frequenciesProp freq (NonEmpty input) = 
+    sumIsLength input (freq input) .&&.
+    inputInOutput input (freq input) .&&.
     outputInInput input (freq input)
 
 frequencies :: Eq a => [a] -> [(a,Int)]
@@ -181,7 +181,20 @@ frequencies (x:ys) = (x, length xs) : frequencies others
 --  [2,4,10]
 
 genList :: Gen [Int]
-genList = todo
+genList = 
+    let 
+        getElems :: Int -> Gen [Int]
+        getElems i = 
+            if i <= 0
+            then return []
+            else do 
+                e <- choose (1,10)
+                n <- getElems (i-1) 
+                return (e:n)
+    in do
+        l <- choose (3,5)
+        xs <- getElems l
+        return (sort xs)
 
 ------------------------------------------------------------------------------
 -- Ex 7: Here are the datatypes Arg and Expression from Set 15. Write
@@ -219,7 +232,14 @@ data Expression = Plus Arg Arg | Minus Arg Arg
   deriving (Show, Eq)
 
 instance Arbitrary Arg where
-  arbitrary = todo
+  arbitrary = do
+    a <- elements (['a'..'c'] ++ ['x'..'z'])
+    i <- choose (1,10)
+    elements [Number i, Variable a]
+
 
 instance Arbitrary Expression where
-  arbitrary = todo
+  arbitrary = do
+    a1 <- arbitrary :: Gen Arg
+    a2 <- arbitrary :: Gen Arg
+    elements [Plus a1 a2, Minus a1 a2]
